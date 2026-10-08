@@ -9,6 +9,10 @@
 
 <img src="docs/demo.gif" alt="잠금 해제, Dock 확대, Finder 에서 글 열기, Spotlight 검색, 시스템 설정에서 다크 모드로 바꾸기" width="880">
 
+https://github.com/user-attachments/assets/5028657c-703d-47bd-aef0-c7312cae20bc
+
+<sub>15초짜리 쇼릴입니다. 소리를 켜고 보세요.</sub>
+
 </div>
 
 ## 기능

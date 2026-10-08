@@ -9,6 +9,10 @@ Posts open as documents, the post list lives in Finder, and the Dock, menu bar a
 
 <img src="docs/demo.gif" alt="Unlocking the desktop, magnifying the Dock, opening a post from Finder, searching with Spotlight and switching to Dark in System Settings" width="880">
 
+https://github.com/user-attachments/assets/5028657c-703d-47bd-aef0-c7312cae20bc
+
+<sub>A 15-second showreel. Turn the sound on.</sub>
+
 </div>
 
 ## Features
