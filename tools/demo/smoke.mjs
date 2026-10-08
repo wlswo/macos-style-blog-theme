@@ -25,6 +25,7 @@ if (DISABLED !== 'default' && !OPTIONAL_APPS.includes(DISABLED)) {
 const dockSelector = (app) => `[data-dock-${app}]`;
 const finderSelector = (app) => `[data-open-app="${app}"]`;
 const windowSelector = (app) => `[data-window="${app}"]`;
+const errors = [];
 
 async function expectCount(page, selector, expected, message) {
   const count = await page.locator(selector).count();
@@ -44,15 +45,21 @@ async function clickDom(page, selector) {
 }
 
 async function waitForWindow(page, app, open) {
-  await page.waitForFunction(
-    ({ selector, shouldBeOpen }) => {
-      const el = document.querySelector(selector);
-      const isOpen = Boolean(el && !el.classList.contains('is-closed') && !el.hidden);
-      return shouldBeOpen ? isOpen : !el || !isOpen;
-    },
-    { selector: windowSelector(app), shouldBeOpen: open },
-    { timeout: 5000 },
-  );
+  try {
+    await page.waitForFunction(
+      ({ selector, shouldBeOpen }) => {
+        const el = document.querySelector(selector);
+        const isOpen = Boolean(el && !el.classList.contains('is-closed') && !el.hidden);
+        return shouldBeOpen ? isOpen : !el || !isOpen;
+      },
+      { selector: windowSelector(app), shouldBeOpen: open },
+      { timeout: 5000 },
+    );
+  } catch (error) {
+    // A window that never opens is usually a symptom; show the browser error behind it.
+    const detail = errors.length ? `\nUncaught browser error(s):\n${errors.join('\n\n')}` : '';
+    throw new Error(`${app} window did not ${open ? 'open' : 'close'} within 5s${detail}`, { cause: error });
+  }
 }
 
 const browser = await chromium.launch({
@@ -62,7 +69,6 @@ const browser = await chromium.launch({
 
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-  const errors = [];
 
   page.on('pageerror', (error) => {
     errors.push(error.stack || error.message || String(error));
