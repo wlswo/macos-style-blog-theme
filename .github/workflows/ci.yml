@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build and checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: true
+
+      - name: Build Jekyll site
+        run: bundle exec jekyll build --trace
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+
+      - name: Install browser-test dependency
+        working-directory: tools/demo
+        run: npm install
+
+      - name: Check JavaScript syntax
+        shell: bash
+        run: |
+          while IFS= read -r -d '' file; do
+            echo "Checking $file"
+            node --input-type=module --check < "$file"
+          done < <(find assets/js -type f -name '*.js' -print0)
+
+      - name: Check trailing newlines in changed text files
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import pathlib
+          import subprocess
+
+          head = subprocess.check_output(
+              ["git", "rev-parse", "HEAD"], text=True
+          ).strip()
+          base = os.environ.get("BASE_SHA", "").strip()
+
+          if not base or set(base) == {"0"}:
+              base = f"{head}^"
+
+          if subprocess.run(
+              ["git", "cat-file", "-e", base],
+              stdout=subprocess.DEVNULL,
+              stderr=subprocess.DEVNULL,
+          ).returncode != 0:
+              base = f"{head}^"
+
+          changed = subprocess.check_output(
+              ["git", "diff", "--name-only", "--diff-filter=ACM", base, head],
+              text=True,
+          ).splitlines()
+
+          extensions = {
+              ".css",
+              ".html",
+              ".js",
+              ".json",
+              ".md",
+              ".rb",
+              ".scss",
+              ".sh",
+              ".txt",
+              ".xml",
+              ".yaml",
+              ".yml",
+          }
+          filenames = {"Gemfile", ".gitignore"}
+          missing = []
+
+          for name in changed:
+              path = pathlib.Path(name)
+              if path.parts and path.parts[0] == "_includes":
+                  continue
+              if path.name not in filenames and path.suffix.lower() not in extensions:
+                  continue
+              if not path.is_file():
+                  continue
+
+              data = path.read_bytes()
+              if data and not data.endswith(b"\n"):
+                  missing.append(name)
+
+          if missing:
+              print("The following changed text files are missing a trailing newline:")
+              for name in missing:
+                  print(f"  - {name}")
+              raise SystemExit(1)
+
+          print("Trailing newline check passed.")
+          PY
+
+      - name: Smoke test default and optional-app configurations
+        working-directory: tools/demo
+        run: npm run smoke

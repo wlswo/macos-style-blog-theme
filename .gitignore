@@ -1,4 +1,5 @@
 _site/*
+_site-smoke-*/
 _theme_packages/*
 
 Thumbs.db
@@ -21,5 +22,5 @@ tools/genie/node_modules/
 
 # Ruby Sass 캐시
 .sass-cache/
-# README 데모 GIF 촬영 도구(tools/demo)의 의존성
+# README 데모 GIF 촬영 · 브라우저 스모크 테스트 도구(tools/demo)의 의존성
 tools/demo/node_modules/
